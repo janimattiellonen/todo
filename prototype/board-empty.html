@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Empty board — Kanban prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="app-header-left">
+          <div class="workspace-name">Jani's workspace <span class="workspace-name-muted">· board</span></div>
+          <nav class="nav">
+            <a class="nav-item active" href="#">Board</a>
+            <a class="nav-item" href="./archive.html">Archive</a>
+            <a class="nav-item" href="./users.html">Users</a>
+          </nav>
+        </div>
+        <div class="app-header-right">
+          <span class="kbd">⌘</span><span class="kbd">K</span>
+          <div class="user-chip">
+            <div class="avatar">JE</div>
+            <span class="muted small">jani@example.com</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="empty-state" style="padding-top: var(--space-12); padding-bottom: var(--space-8)">
+          <h1 class="empty-title">Welcome to your board</h1>
+          <p class="empty-text">
+            Start by creating your first task, or invite teammates to collaborate.
+            Default columns are <strong>To do</strong>, <strong>In progress</strong>, and <strong>Done</strong> — you can rename or rearrange them later.
+          </p>
+          <div class="empty-actions">
+            <button class="btn btn-primary btn-lg">+ Create your first task</button>
+            <a class="btn btn-secondary btn-lg" href="./users.html">Invite teammates</a>
+          </div>
+        </div>
+
+        <div class="board">
+          <div class="column">
+            <div class="column-header">
+              <div class="column-title">
+                To do
+                <span class="column-count">0</span>
+              </div>
+            </div>
+            <button class="column-add">+ Add task</button>
+          </div>
+
+          <div class="column">
+            <div class="column-header">
+              <div class="column-title">
+                In progress
+                <span class="column-count">0</span>
+              </div>
+            </div>
+            <button class="column-add">+ Add task</button>
+          </div>
+
+          <div class="column">
+            <div class="column-header">
+              <div class="column-title">
+                Done
+                <span class="column-count">0</span>
+              </div>
+            </div>
+            <button class="column-add">+ Add task</button>
+          </div>
+        </div>
+
+        <div style="margin-top: var(--space-8)">
+          <a href="./index.html" class="small muted">← back to prototype index</a>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

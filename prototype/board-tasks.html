@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Board with tasks — Kanban prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="app-header-left">
+          <div class="workspace-name">Jani's workspace <span class="workspace-name-muted">· board</span></div>
+          <nav class="nav">
+            <a class="nav-item active" href="#">Board</a>
+            <a class="nav-item" href="./archive.html">Archive</a>
+            <a class="nav-item" href="./users.html">Users</a>
+          </nav>
+        </div>
+        <div class="app-header-right">
+          <span class="kbd">⌘</span><span class="kbd">K</span>
+          <div class="user-chip">
+            <div class="avatar">JE</div>
+            <span class="muted small">jani@example.com</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="with-detail">
+          <div class="board">
+            <div class="column">
+              <div class="column-header">
+                <div class="column-title">
+                  To do
+                  <span class="column-count">4</span>
+                </div>
+              </div>
+
+              <div class="task-card">
+                <div class="task-title">Draft the privacy policy v0.1 from a template</div>
+                <div class="task-meta">
+                  <div class="task-meta-left">
+                    <span class="due">Tue · 19 May</span>
+                  </div>
+                  <div class="task-meta-right">
+                    <div class="avatar avatar-sm" title="Jani">JE</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="task-card selected">
+                <div class="task-title">Wire magic-link consume route to create session cookie</div>
+                <div class="task-meta">
+                  <div class="task-meta-left">
+                    <span class="due due-soon">Thu · 21 May</span>
+                  </div>
+                  <div class="task-meta-right">
+                    <div class="avatar avatar-sm" title="Jani">JE</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="task-card">
+                <div class="task-title">Decide whether mobile column switcher should be tabs or a segmented control</div>
+                <div class="task-meta">
+                  <div class="task-meta-left"></div>
+                  <div class="task-meta-right"></div>
+                </div>
+              </div>
+
+              <div class="task-card">
+                <div class="task-title">Sketch the invitation email copy — must not mention other invitees</div>
+                <div class="task-meta">
+                  <div class="task-meta-left">
+                    <span class="due">Fri · 22 May</span>
+                  </div>
+                  <div class="task-meta-right">
+                    <div class="avatar avatar-sm" title="Maria">MK</div>
+                  </div>
+                </div>
+              </div>
+
+              <button class="column-add">+ Add task</button>
+            </div>
+
+            <div class="column">
+              <div class="column-header">
+                <div class="column-title">
+                  In progress
+                  <span class="column-count">2</span>
+                </div>
+              </div>
+
+              <div class="task-card">
+                <div class="task-title">Bootstrap React Router 7 + StyleX from the reference project's vite config</div>
+                <div class="task-meta">
+                  <div class="task-meta-left">
+                    <span class="due due-overdue">Mon · 12 May</span>
+                  </div>
+                  <div class="task-meta-right">
+                    <div class="avatar avatar-sm" title="Jani">JE</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="task-card">
+                <div class="task-title">Spike: per-test transaction rollback for Slonik integration tests</div>
+                <div class="task-meta">
+                  <div class="task-meta-left"></div>
+                  <div class="task-meta-right">
+                    <div class="avatar avatar-sm" title="Jani">JE</div>
+                  </div>
+                </div>
+              </div>
+
+              <button class="column-add">+ Add task</button>
+            </div>
+
+            <div class="column">
+              <div class="column-header">
+                <div class="column-title">
+                  Done
+                  <span class="column-count">3</span>
+                </div>
+              </div>
+
+              <div class="task-card">
+                <div class="task-title">Pick deep teal as the prototype accent colour</div>
+                <div class="task-meta">
+                  <div class="task-meta-left"></div>
+                  <div class="task-meta-right">
+                    <div class="avatar avatar-sm" title="Jani">JE</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="task-card">
+                <div class="task-title">Run the proxy validation conversation</div>
+                <div class="task-meta">
+                  <div class="task-meta-left"></div>
+                  <div class="task-meta-right">
+                    <div class="avatar avatar-sm" title="Jani">JE</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="task-card">
+                <div class="task-title">Write the project plan and revise after validation</div>
+                <div class="task-meta">
+                  <div class="task-meta-left"></div>
+                  <div class="task-meta-right">
+                    <div class="avatar avatar-sm" title="Jani">JE</div>
+                  </div>
+                </div>
+              </div>
+
+              <button class="column-add">+ Add task</button>
+            </div>
+          </div>
+
+          <aside class="detail-panel">
+            <div class="detail-header">
+              <input class="detail-title-input" value="Wire magic-link consume route to create session cookie" />
+              <button class="detail-close" aria-label="Close">×</button>
+            </div>
+
+            <div class="field">
+              <textarea class="textarea" placeholder="Add a description…">Validate token from the URL, mark consumed, set a 30-day sliding cookie, redirect to /board. Make sure cookie is HttpOnly + SameSite=Lax + Secure in non-dev.</textarea>
+            </div>
+
+            <div style="margin-top: var(--space-3)">
+              <div class="detail-row">
+                <div class="detail-row-label">Assignee</div>
+                <div class="detail-row-value">
+                  <div class="avatar avatar-sm">JE</div>
+                  <span>Jani</span>
+                </div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-row-label">Due date</div>
+                <div class="detail-row-value">
+                  <span class="chip chip-warning">Thu · 21 May</span>
+                </div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-row-label">Column</div>
+                <div class="detail-row-value">
+                  <span class="chip">To do</span>
+                </div>
+              </div>
+              <div class="detail-row">
+                <div class="detail-row-label">Created</div>
+                <div class="detail-row-value muted small">Sat · 17 May, 2026 by Jani</div>
+              </div>
+            </div>
+
+            <div class="detail-actions">
+              <button class="btn btn-ghost btn-sm">Archive</button>
+              <button class="btn btn-danger-ghost btn-sm">Delete</button>
+            </div>
+          </aside>
+        </div>
+
+        <div style="margin-top: var(--space-8)">
+          <a href="./index.html" class="small muted">← back to prototype index</a>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Landing — Kanban prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="auth-page">
+      <div class="auth-card">
+        <div class="auth-brand">
+          <div class="auth-mark">K</div>
+          <h1 class="auth-title">Sign in</h1>
+          <div class="auth-subtitle">We'll email you a link to sign in. No password.</div>
+        </div>
+
+        <form onsubmit="event.preventDefault()">
+          <div class="field">
+            <label class="label" for="email">Email</label>
+            <input class="input" id="email" type="email" placeholder="you@company.com" autocomplete="email" />
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block btn-lg">Send magic link</button>
+        </form>
+
+        <div class="auth-footer">
+          By continuing you accept the <a href="#">terms</a> and <a href="#">privacy policy</a>.
+        </div>
+      </div>
+
+      <div style="margin-top: var(--space-6)">
+        <a href="./index.html" class="small muted">← back to prototype index</a>
+      </div>
+    </div>
+  </body>
+</html>

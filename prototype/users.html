@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Users — Kanban prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="app-header-left">
+          <div class="workspace-name">Jani's workspace <span class="workspace-name-muted">· users</span></div>
+          <nav class="nav">
+            <a class="nav-item" href="./board-tasks.html">Board</a>
+            <a class="nav-item" href="./archive.html">Archive</a>
+            <a class="nav-item active" href="#">Users</a>
+          </nav>
+        </div>
+        <div class="app-header-right">
+          <span class="kbd">⌘</span><span class="kbd">K</span>
+          <div class="user-chip">
+            <div class="avatar">JE</div>
+            <span class="muted small">jani@example.com</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="main-wide">
+          <div class="row-between" style="margin-bottom: var(--space-5)">
+            <div>
+              <h1 style="font-size: var(--size-2xl); font-weight: 600">Users</h1>
+              <div class="muted small">4 members · 11 seats remaining</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">Invite teammates</h2>
+            <div class="section-subtitle">
+              One outbound email per address. Each invite is personalised and never reveals other invitees.
+            </div>
+
+            <div class="field">
+              <label class="label" for="invites">Email addresses</label>
+              <textarea class="textarea" id="invites" placeholder="alice@example.com, bob@example.com&#10;cara@example.com">alice@example.com, bob@example.com
+cara@example.com</textarea>
+              <div class="help">Comma- or newline-separated. Invitations expire in 5 days.</div>
+            </div>
+
+            <div class="row" style="justify-content: flex-end">
+              <button class="btn btn-secondary">Cancel</button>
+              <button class="btn btn-primary">Send 3 invitations</button>
+            </div>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">Members</h2>
+            <div class="section-subtitle">Admins can invite, remove, and change roles. The last admin cannot be removed.</div>
+
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Last active</th>
+                  <th class="row-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <span class="row">
+                      <div class="avatar">JE</div>
+                      <div>
+                        <div>jani@example.com</div>
+                        <div class="muted small">You</div>
+                      </div>
+                    </span>
+                  </td>
+                  <td><span class="chip chip-accent">Admin</span></td>
+                  <td class="muted">just now</td>
+                  <td class="row-actions">
+                    <button class="row-action-link" disabled title="The last admin cannot be removed" style="opacity: 0.4; cursor: not-allowed">Remove</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="row">
+                      <div class="avatar">MK</div>
+                      <span>maria@example.com</span>
+                    </span>
+                  </td>
+                  <td><span class="chip">User</span></td>
+                  <td class="muted">2 hours ago</td>
+                  <td class="row-actions">
+                    <button class="row-action-link">Promote</button>
+                    <button class="row-action-link danger">Remove</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="row">
+                      <div class="avatar">SO</div>
+                      <span>simo@example.com</span>
+                    </span>
+                  </td>
+                  <td><span class="chip">User</span></td>
+                  <td class="muted">yesterday</td>
+                  <td class="row-actions">
+                    <button class="row-action-link">Promote</button>
+                    <button class="row-action-link danger">Remove</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <span class="row">
+                      <div class="avatar">PT</div>
+                      <span>petteri@example.com</span>
+                    </span>
+                  </td>
+                  <td><span class="chip">User</span></td>
+                  <td class="muted">3 weeks ago</td>
+                  <td class="row-actions">
+                    <button class="row-action-link">Promote</button>
+                    <button class="row-action-link danger">Remove</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="section">
+            <h2 class="section-title">Pending invitations</h2>
+            <div class="section-subtitle">Links expire 5 days after sending. You can re-send or revoke at any time.</div>
+
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Sent</th>
+                  <th>Status</th>
+                  <th class="row-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>henna@example.com</td>
+                  <td class="muted">2 days ago</td>
+                  <td><span class="chip chip-info">Pending</span></td>
+                  <td class="row-actions">
+                    <button class="row-action-link">Re-send</button>
+                    <button class="row-action-link danger">Revoke</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>oskari@example.com</td>
+                  <td class="muted">6 days ago</td>
+                  <td><span class="chip chip-warning">Expired</span></td>
+                  <td class="row-actions">
+                    <button class="row-action-link">Re-send</button>
+                    <button class="row-action-link danger">Revoke</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-top: var(--space-8)">
+          <a href="./index.html" class="small muted">← back to prototype index</a>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

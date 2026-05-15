@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kanban — Phase 0 prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="app-header-left">
+          <div class="workspace-name">Kanban prototype <span class="workspace-name-muted">· Phase 0 · throwaway</span></div>
+        </div>
+        <div class="app-header-right">
+          <span class="chip">deep teal · Linear-structure · non-AI palette</span>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="main-narrow">
+          <div class="callout">
+            <div>
+              <strong>This is a throwaway prototype.</strong> Plain HTML and CSS only. The whole point is to react to the visuals and the functional layout — not the code, which is intentionally crude. Once we agree on what to keep, the visuals get distilled to <code>docs/design-tokens.md</code> and these files get deleted.
+            </div>
+          </div>
+
+          <h2 class="section-title" style="margin-bottom: var(--space-4)">Screens</h2>
+
+          <div class="section">
+            <div class="row-between" style="margin-bottom: var(--space-3)">
+              <div>
+                <div style="font-weight: 600">1. Landing / sign-in</div>
+                <div class="muted small">A visitor's entry point. Single email input → magic link.</div>
+              </div>
+              <a class="btn btn-secondary btn-sm" href="./landing.html">Open</a>
+            </div>
+            <div class="row-between" style="margin-bottom: var(--space-3)">
+              <div>
+                <div style="font-weight: 600">2. Empty board</div>
+                <div class="muted small">Just signed up. Three default columns. Two big empty-state CTAs.</div>
+              </div>
+              <a class="btn btn-secondary btn-sm" href="./board-empty.html">Open</a>
+            </div>
+            <div class="row-between" style="margin-bottom: var(--space-3)">
+              <div>
+                <div style="font-weight: 600">3. Board with tasks</div>
+                <div class="muted small">Populated board, one task open in a right-side detail panel.</div>
+              </div>
+              <a class="btn btn-secondary btn-sm" href="./board-tasks.html">Open</a>
+            </div>
+            <div class="row-between" style="margin-bottom: var(--space-3)">
+              <div>
+                <div style="font-weight: 600">4. Mobile board</div>
+                <div class="muted small">Single-column scroll with column switcher. "Move to" tap-menu visible.</div>
+              </div>
+              <a class="btn btn-secondary btn-sm" href="./board-mobile.html">Open</a>
+            </div>
+            <div class="row-between" style="margin-bottom: var(--space-3)">
+              <div>
+                <div style="font-weight: 600">5. Archive</div>
+                <div class="muted small">List of archived tasks with restore action.</div>
+              </div>
+              <a class="btn btn-secondary btn-sm" href="./archive.html">Open</a>
+            </div>
+            <div class="row-between">
+              <div>
+                <div style="font-weight: 600">6. Users panel</div>
+                <div class="muted small">Admin view: invite teammates, manage members, pending invitations.</div>
+              </div>
+              <a class="btn btn-secondary btn-sm" href="./users.html">Open</a>
+            </div>
+          </div>
+
+          <h2 class="section-title" style="margin-bottom: var(--space-4)">What to react to</h2>
+          <div class="section">
+            <ol class="stack-3" style="padding-left: var(--space-5)">
+              <li><strong>Overall vibe.</strong> Does this read as "Linear-clean, non-AI"? If anything feels too generic, too AI, or too cold, say so.</li>
+              <li><strong>Accent colour.</strong> Deep teal (<code>#1F5862</code>). Used sparingly. If you want a different teal, a different colour entirely, or a no-accent monochrome, swap is mechanical.</li>
+              <li><strong>Density.</strong> Spacing, type sizes, card padding. Tighter? Looser?</li>
+              <li><strong>Functional layout.</strong> Detail panel on the right (vs modal). Mobile tap-menu. Empty-state CTAs. Archive as a list (vs columns). Users panel with invite form inline at the top.</li>
+              <li><strong>Anything missing.</strong> Affordances or screens we didn't think to mock up.</li>
+            </ol>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

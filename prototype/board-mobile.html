@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mobile board — Kanban prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="main-narrow" style="padding: var(--space-4)">
+      <div class="callout">
+        <div>
+          <strong>Mobile preview (~390px wide).</strong>
+          The actual app is responsive — this frame just shows the small-screen layout.
+          Note the column switcher at the top and the "Move to" tap-menu on one of the cards.
+        </div>
+      </div>
+    </div>
+
+    <div class="viewport-mobile">
+      <header class="app-header">
+        <div class="workspace-name">Jani's <span class="workspace-name-muted">· board</span></div>
+        <div class="avatar avatar-sm">JE</div>
+      </header>
+
+      <main class="main">
+        <div class="col-switcher">
+          <div class="col-switcher-item">To do <span class="muted">4</span></div>
+          <div class="col-switcher-item active">In progress <span class="muted">2</span></div>
+          <div class="col-switcher-item">Done <span class="muted">3</span></div>
+        </div>
+
+        <div class="task-mobile">
+          <button class="task-kebab" aria-label="Task actions">⋯</button>
+          <div class="task-title">Bootstrap React Router 7 + StyleX from the reference project's vite config</div>
+          <div class="task-meta">
+            <div class="task-meta-left">
+              <span class="due due-overdue">Mon · 12 May</span>
+            </div>
+            <div class="task-meta-right">
+              <div class="avatar avatar-sm" title="Jani">JE</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-mobile">
+          <button class="task-kebab" aria-label="Task actions" style="background: var(--surface-2); color: var(--text-default)">⋯</button>
+          <div class="task-title">Spike: per-test transaction rollback for Slonik integration tests</div>
+          <div class="task-meta">
+            <div class="task-meta-left"></div>
+            <div class="task-meta-right">
+              <div class="avatar avatar-sm" title="Jani">JE</div>
+            </div>
+          </div>
+
+          <div class="move-menu">
+            <div class="move-menu-header">Move to</div>
+            <div class="move-menu-item">To do</div>
+            <div class="move-menu-item current">In progress <span class="checkmark">✓</span></div>
+            <div class="move-menu-item">Done</div>
+          </div>
+        </div>
+
+        <button class="column-add" style="margin-top: var(--space-3)">+ Add task</button>
+      </main>
+    </div>
+
+    <div style="text-align: center; margin: var(--space-6)">
+      <a href="./index.html" class="small muted">← back to prototype index</a>
+    </div>
+  </body>
+</html>

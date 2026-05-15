@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Archive — Kanban prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <div class="app-header-left">
+          <div class="workspace-name">Jani's workspace <span class="workspace-name-muted">· archive</span></div>
+          <nav class="nav">
+            <a class="nav-item" href="./board-tasks.html">Board</a>
+            <a class="nav-item active" href="#">Archive</a>
+            <a class="nav-item" href="./users.html">Users</a>
+          </nav>
+        </div>
+        <div class="app-header-right">
+          <span class="kbd">⌘</span><span class="kbd">K</span>
+          <div class="user-chip">
+            <div class="avatar">JE</div>
+            <span class="muted small">jani@example.com</span>
+          </div>
+        </div>
+      </header>
+
+      <main class="main">
+        <div class="main-wide">
+          <div class="row-between" style="margin-bottom: var(--space-5)">
+            <div>
+              <h1 style="font-size: var(--size-2xl); font-weight: 600">Archive</h1>
+              <div class="muted small">Archived tasks stay out of the board view but can be restored anytime.</div>
+            </div>
+          </div>
+
+          <div class="section" style="padding: 0">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="padding-left: var(--space-5)">Title</th>
+                  <th>Original column</th>
+                  <th>Archived</th>
+                  <th>By</th>
+                  <th class="row-actions" style="padding-right: var(--space-5)">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="padding-left: var(--space-5)">Decide whether to use dnd-kit or roll our own DnD</td>
+                  <td><span class="chip">Done</span></td>
+                  <td class="muted">3 days ago</td>
+                  <td>
+                    <span class="row">
+                      <div class="avatar avatar-sm">JE</div>
+                      <span class="small">Jani</span>
+                    </span>
+                  </td>
+                  <td class="row-actions" style="padding-right: var(--space-5)">
+                    <button class="row-action-link">Restore</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-left: var(--space-5)">Investigate Postmark vs Resend pricing</td>
+                  <td><span class="chip">Done</span></td>
+                  <td class="muted">a week ago</td>
+                  <td>
+                    <span class="row">
+                      <div class="avatar avatar-sm">JE</div>
+                      <span class="small">Jani</span>
+                    </span>
+                  </td>
+                  <td class="row-actions" style="padding-right: var(--space-5)">
+                    <button class="row-action-link">Restore</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-left: var(--space-5)">Tailwind vs StyleX vs vanilla-extract — decide</td>
+                  <td><span class="chip">In progress</span></td>
+                  <td class="muted">2 weeks ago</td>
+                  <td>
+                    <span class="row">
+                      <div class="avatar avatar-sm">JE</div>
+                      <span class="small">Jani</span>
+                    </span>
+                  </td>
+                  <td class="row-actions" style="padding-right: var(--space-5)">
+                    <button class="row-action-link">Restore</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-left: var(--space-5)">Sketch the marketing landing copy</td>
+                  <td><span class="chip">To do</span></td>
+                  <td class="muted">3 weeks ago</td>
+                  <td>
+                    <span class="row">
+                      <div class="avatar avatar-sm">MK</div>
+                      <span class="small">Maria</span>
+                    </span>
+                  </td>
+                  <td class="row-actions" style="padding-right: var(--space-5)">
+                    <button class="row-action-link">Restore</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style="margin-top: var(--space-8)">
+          <a href="./index.html" class="small muted">← back to prototype index</a>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
