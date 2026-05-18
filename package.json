@@ -8,6 +8,10 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
+    "format": "biome check . --linter-enabled=false",
+    "format:fix": "biome check . --linter-enabled=false --write",
+    "lint": "biome lint --error-on-warnings .",
+    "lint:fix": "biome lint --error-on-warnings . --write",
     "start": "react-router-serve ./build/server/index.js",
     "types": "react-router typegen && tsc"
   },
@@ -20,6 +24,7 @@
     "react-router": "7.15.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.15",
     "@react-router/dev": "7.15.1",
     "@tailwindcss/vite": "^4.2.2",
     "@tsconfig/strictest": "^2.0.8",
