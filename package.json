@@ -18,6 +18,7 @@
     "lint": "biome lint --error-on-warnings .",
     "lint:fix": "biome lint --error-on-warnings . --write",
     "start": "react-router-serve ./build/server/index.js",
+    "test": "vitest run",
     "types": "react-router typegen && tsc"
   },
   "dependencies": {

@@ -18,4 +18,7 @@ export default defineConfig({
       "~": path.resolve(__dirname, "app"),
     },
   },
+  test: {
+    include: ["app/**/*.unit.test.{ts,tsx}"],
+  },
 });
