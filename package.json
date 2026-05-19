@@ -18,6 +18,8 @@
     "lint": "biome lint --error-on-warnings .",
     "lint:fix": "biome lint --error-on-warnings . --write",
     "script:db:check": "tsx --env-file=.env ./app/scripts/checkDatabase.server.ts",
+    "script:db:migrate": "tsx --env-file=.env ./app/scripts/migrate.server.ts",
+    "script:db:migrate:test": "tsx --env-file=.env.test ./app/scripts/migrate.server.ts",
     "start": "react-router-serve ./build/server/index.js",
     "test": "vitest run",
     "types": "react-router typegen && tsc"

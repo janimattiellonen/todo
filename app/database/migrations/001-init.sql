@@ -1,0 +1,1 @@
+-- Initial no-op migration to verify the migration toolchain end-to-end.
