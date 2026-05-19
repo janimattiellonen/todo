@@ -11,6 +11,8 @@
     "db:start": "docker compose up -d postgres",
     "db:stop": "docker compose stop postgres",
     "dev": "react-router dev",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install chromium",
     "format": "biome check . --linter-enabled=false",
     "format:fix": "biome check . --linter-enabled=false --write",
     "lint": "biome lint --error-on-warnings .",
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
+    "@playwright/test": "^1.60.0",
     "@react-router/dev": "7.15.1",
     "@tailwindcss/vite": "^4.2.2",
     "@tsconfig/strictest": "^2.0.8",
