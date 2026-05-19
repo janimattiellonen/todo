@@ -16,6 +16,10 @@ const logLevels = [
 
 type LogLevel = (typeof logLevels)[number];
 
+const emailTransports = ["mock", "resend"] as const;
+
+type EmailTransportName = (typeof emailTransports)[number];
+
 export type ServerConfig = {
   environment: Environment;
   log: {
@@ -23,6 +27,13 @@ export type ServerConfig = {
   };
   database: {
     url: string;
+  };
+  email: {
+    transport: EmailTransportName;
+    /** Required when transport === "resend". */
+    resendApiKey: string | null;
+    /** Default `from` address when not provided per-message. */
+    from: string;
   };
 };
 
@@ -54,6 +65,11 @@ function createServerConfig(): ServerConfig {
     },
     database: {
       url: requireString("DATABASE_URL"),
+    },
+    email: {
+      transport: requireOneOf("EMAIL_TRANSPORT", emailTransports),
+      resendApiKey: process.env["RESEND_API_KEY"] ?? null,
+      from: requireString("EMAIL_FROM"),
     },
   };
 }
