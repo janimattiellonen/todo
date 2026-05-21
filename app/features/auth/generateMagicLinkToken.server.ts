@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from "node:crypto";
+import { generateOpaqueToken, hashToken } from "./hashToken.server";
 
 /**
  * Generate a one-time magic-link token.
@@ -17,12 +17,9 @@ export type GeneratedToken = {
 };
 
 export function generateMagicLinkToken(): GeneratedToken {
-  const plaintext = randomBytes(32).toString("base64url");
-  const hash = hashMagicLinkToken(plaintext);
-
-  return { plaintext, hash };
+  return generateOpaqueToken();
 }
 
 export function hashMagicLinkToken(plaintext: string): string {
-  return createHash("sha256").update(plaintext).digest("hex");
+  return hashToken(plaintext);
 }

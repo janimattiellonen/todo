@@ -1,5 +1,14 @@
 import * as stylex from "@stylexjs/stylex";
-import { Form } from "react-router";
+import { Form, redirect } from "react-router";
+import { getServerConfig } from "~/config/serverConfig.server";
+import { getPool } from "~/database/pool.server";
+import { completeFirstTimeSetup } from "~/features/auth/consumeMagicLink.server";
+import {
+  clearSetupCookieHeader,
+  readSetupCookie,
+  serializeSessionCookie,
+} from "~/features/auth/sessionCookie.server";
+import { toUserId } from "~/features/users/usersTypes";
 import { colors } from "~/ui/tokens/colors.stylex";
 import { radius } from "~/ui/tokens/radius.stylex";
 import { spacing } from "~/ui/tokens/spacing.stylex";
@@ -10,77 +19,86 @@ import {
   letterSpacing,
   lineHeight,
 } from "~/ui/tokens/typography.stylex";
-import type { Route } from "./+types/home";
+import type { Route } from "./+types/setup.workspace";
+
+const MAX_NAME_LEN = 80;
 
 export function meta(_args: Route.MetaArgs) {
-  return [
-    { title: "Sign in · Todo" },
-    {
-      name: "description",
-      content: "Sign in to your workspace with a magic link.",
-    },
-  ];
+  return [{ title: "Create your workspace · Todo" }];
 }
 
-type Status = "sent" | "invalid" | "invalid_link";
-
-const STATUSES: readonly Status[] = ["sent", "invalid", "invalid_link"];
-
-export function loader({ request }: Route.LoaderArgs) {
-  const url = new URL(request.url);
-  const raw = url.searchParams.get("status");
-  const status: Status | null =
-    raw !== null && (STATUSES as readonly string[]).includes(raw)
-      ? (raw as Status)
-      : null;
-  return { status };
+export async function loader({ request }: Route.LoaderArgs) {
+  const config = getServerConfig();
+  const setup = await readSetupCookie(config, request);
+  if (setup === null) {
+    return redirect("/");
+  }
+  return { suggestedName: `${setup.emailLocalpart}'s workspace` };
 }
 
-export default function Home({ loaderData }: Route.ComponentProps) {
+export async function action({ request }: Route.ActionArgs) {
+  const config = getServerConfig();
+  const setup = await readSetupCookie(config, request);
+  if (setup === null) {
+    return redirect("/");
+  }
+
+  const formData = await request.formData();
+  const rawName = formData.get("workspace_name");
+  const name = typeof rawName === "string" ? rawName.trim() : "";
+
+  if (name.length === 0 || name.length > MAX_NAME_LEN) {
+    return { error: "Workspace name must be between 1 and 80 characters." };
+  }
+
+  const pool = await getPool(config);
+  const { sessionToken } = await completeFirstTimeSetup(pool, {
+    userId: toUserId(setup.userId),
+    workspaceName: name,
+  });
+
+  const headers = new Headers();
+  headers.append(
+    "Set-Cookie",
+    await serializeSessionCookie(config, sessionToken),
+  );
+  headers.append("Set-Cookie", await clearSetupCookieHeader(config));
+  return redirect("/board", { headers });
+}
+
+export default function SetupWorkspace({
+  loaderData,
+  actionData,
+}: Route.ComponentProps) {
   return (
     <main {...stylex.props(styles.page)}>
       <div {...stylex.props(styles.card)}>
-        <h1 {...stylex.props(styles.heading)}>Sign in</h1>
+        <h1 {...stylex.props(styles.heading)}>Create your workspace</h1>
         <p {...stylex.props(styles.lede)}>
-          Enter your email and we'll send a magic link.
+          What should we call your workspace? You can change this later.
         </p>
 
-        <Form
-          method="post"
-          action="/auth/request"
-          {...stylex.props(styles.form)}
-        >
-          <label htmlFor="email" {...stylex.props(styles.label)}>
-            Email
+        <Form method="post" {...stylex.props(styles.form)}>
+          <label htmlFor="workspace_name" {...stylex.props(styles.label)}>
+            Workspace name
           </label>
           <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
+            id="workspace_name"
+            name="workspace_name"
+            type="text"
             required
-            placeholder="email@example.com"
+            maxLength={MAX_NAME_LEN}
+            defaultValue={loaderData.suggestedName}
             {...stylex.props(styles.input)}
           />
           <button type="submit" {...stylex.props(styles.button)}>
-            Send magic link
+            Create workspace
           </button>
         </Form>
 
-        {loaderData.status === "sent" && (
-          <p {...stylex.props(styles.status, styles.statusInfo)} role="status">
-            If that email matches an account, a magic link is on its way.
-          </p>
-        )}
-        {loaderData.status === "invalid" && (
-          <p {...stylex.props(styles.status, styles.statusError)} role="alert">
-            That doesn't look like a valid email.
-          </p>
-        )}
-        {loaderData.status === "invalid_link" && (
-          <p {...stylex.props(styles.status, styles.statusError)} role="alert">
-            This sign-in link isn't valid or has expired. Request a new one
-            below.
+        {actionData?.error && (
+          <p {...stylex.props(styles.error)} role="alert">
+            {actionData.error}
           </p>
         )}
       </div>
@@ -158,16 +176,11 @@ const styles = stylex.create({
     borderRadius: radius.md,
     cursor: "pointer",
   },
-  status: {
+  error: {
     marginTop: spacing.x4,
     marginBottom: 0,
     fontSize: fontSize.bodySm,
     lineHeight: lineHeight.body,
-  },
-  statusInfo: {
-    color: colors.info,
-  },
-  statusError: {
     color: colors.danger,
   },
 });
