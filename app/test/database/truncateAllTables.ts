@@ -15,6 +15,7 @@ export async function truncateAllTables(pool: DatabasePool): Promise<void> {
   await pool.query(
     sql.typeAlias("void")`
       TRUNCATE
+        tasks,
         sessions,
         magic_link_tokens,
         columns,
