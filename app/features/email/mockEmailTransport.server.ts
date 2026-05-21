@@ -9,6 +9,16 @@ export type MockEmailTransport = EmailTransport & {
   reset(): void;
 };
 
+const URL_REGEX = /https?:\/\/[^\s"'<>]+/g;
+
+function extractUrls(body: string): string[] {
+  const matches = body.match(URL_REGEX);
+  if (!matches) return [];
+  // De-duplicate while preserving order — templates often repeat the same
+  // link in both a button href and a plain-text fallback.
+  return Array.from(new Set(matches));
+}
+
 export function createMockEmailTransport(logger: Logger): MockEmailTransport {
   const sentMessages: EmailMessage[] = [];
   let counter = 0;
@@ -30,6 +40,13 @@ export function createMockEmailTransport(logger: Logger): MockEmailTransport {
         { id, to: message.to, subject: message.subject },
         "[mock email] captured",
       );
+
+      // Surface any URLs in the body so the dev can click through without
+      // an email gateway. Safe here because this branch only runs when
+      // EMAIL_TRANSPORT=mock (dev/test by config).
+      for (const url of extractUrls(message.body)) {
+        logger.info({ id, url }, "[mock email] link");
+      }
 
       return Promise.resolve({ id });
     },
