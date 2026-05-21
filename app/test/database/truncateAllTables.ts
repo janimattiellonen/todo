@@ -17,6 +17,7 @@ export async function truncateAllTables(pool: DatabasePool): Promise<void> {
       TRUNCATE
         sessions,
         magic_link_tokens,
+        columns,
         workspace_members,
         workspaces,
         users

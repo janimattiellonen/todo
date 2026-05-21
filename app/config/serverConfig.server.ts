@@ -39,6 +39,10 @@ export type ServerConfig = {
     /** Public base URL — used to build magic-link URLs in emails. */
     url: string;
   };
+  session: {
+    /** HMAC secret for tamper-detection on the session cookie value. */
+    cookieSecret: string;
+  };
 };
 
 let serverConfig: ServerConfig | null = null;
@@ -77,6 +81,9 @@ function createServerConfig(): ServerConfig {
     },
     app: {
       url: requireString("APP_URL"),
+    },
+    session: {
+      cookieSecret: requireString("SESSION_COOKIE_SECRET"),
     },
   };
 }
