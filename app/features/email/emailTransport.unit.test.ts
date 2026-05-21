@@ -99,4 +99,45 @@ describe("MockEmailTransport", () => {
     });
     expect(next.id).toBe("mock_1");
   });
+
+  test("logs each unique URL in the body so the dev can click through", async () => {
+    const logger = createSilentLogger();
+    const t = createMockEmailTransport(logger);
+
+    await t.send({
+      from: "n@example.com",
+      to: "alice@example.com",
+      subject: "Sign in",
+      body: `<a href="http://localhost:5172/auth/consume?token=abc123">Sign in</a>
+             <p>or copy: http://localhost:5172/auth/consume?token=abc123</p>`,
+    });
+
+    // First info: the standard capture log.
+    // Second info: the link log.
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "mock_1",
+        // biome-ignore lint/security/noSecrets: Synthetic test fixture, not a real token.
+        url: "http://localhost:5172/auth/consume?token=abc123",
+      }),
+      "[mock email] link",
+    );
+  });
+
+  test("does not log a link when the body has no URL", async () => {
+    const logger = createSilentLogger();
+    const t = createMockEmailTransport(logger);
+
+    await t.send({
+      from: "n@example.com",
+      to: "alice@example.com",
+      subject: "x",
+      body: "plain text, no links",
+    });
+
+    const linkLogs = (
+      logger.info as ReturnType<typeof vi.fn>
+    ).mock.calls.filter((call) => call[1] === "[mock email] link");
+    expect(linkLogs).toHaveLength(0);
+  });
 });

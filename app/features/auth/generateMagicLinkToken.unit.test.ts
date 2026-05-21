@@ -32,6 +32,7 @@ describe("generateMagicLinkToken", () => {
     expect(a).toBe(b);
   });
 
+  // biome-ignore lint/security/noSecrets: Test description, not a secret.
   test("the hash matches hashMagicLinkToken(plaintext)", () => {
     const { plaintext, hash } = generateMagicLinkToken();
 
