@@ -35,6 +35,10 @@ export type ServerConfig = {
     /** Default `from` address when not provided per-message. */
     from: string;
   };
+  app: {
+    /** Public base URL — used to build magic-link URLs in emails. */
+    url: string;
+  };
 };
 
 let serverConfig: ServerConfig | null = null;
@@ -70,6 +74,9 @@ function createServerConfig(): ServerConfig {
       transport: requireOneOf("EMAIL_TRANSPORT", emailTransports),
       resendApiKey: process.env["RESEND_API_KEY"] ?? null,
       from: requireString("EMAIL_FROM"),
+    },
+    app: {
+      url: requireString("APP_URL"),
     },
   };
 }

@@ -1,18 +1,34 @@
 import { expect, test } from "@playwright/test";
 
-test("home page renders", async ({ page }) => {
+test("sign-in page renders", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page).toHaveTitle("New React Router App");
+  await expect(page).toHaveTitle(/Sign in/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Sign in");
+  await expect(page.getByLabel("Email")).toBeVisible();
   await expect(
-    page.getByRole("link", { name: /react router docs/i }),
+    page.getByRole("button", { name: /send magic link/i }),
   ).toBeVisible();
 });
 
-test("StyleX demo component is styled", async ({ page }) => {
+test("renders the invalid-email error message when ?status=invalid", async ({
+  page,
+}) => {
+  await page.goto("/?status=invalid");
+
+  await expect(page.getByRole("alert")).toContainText(/valid email/i);
+});
+
+test("submitting a valid email shows the neutral success message", async ({
+  page,
+}) => {
   await page.goto("/");
 
-  const card = page.getByTestId("stylex-demo");
-  await expect(card).toBeVisible();
-  await expect(card).toHaveCSS("background-color", "rgb(250, 250, 250)");
+  await page.getByLabel("Email").fill("nobody@example.com");
+  await page.getByRole("button", { name: /send magic link/i }).click();
+
+  await expect(page).toHaveURL(/[?&]status=sent/);
+  await expect(page.getByRole("status")).toContainText(
+    /magic link is on its way/i,
+  );
 });
