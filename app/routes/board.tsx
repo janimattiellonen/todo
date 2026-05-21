@@ -1,11 +1,21 @@
 import * as stylex from "@stylexjs/stylex";
-import { Form } from "react-router";
+import { Form, redirect } from "react-router";
 import { getServerConfig } from "~/config/serverConfig.server";
 import { getPool } from "~/database/pool.server";
 import { requireSession } from "~/features/auth/requireSession.server";
 import { queryListColumnsForWorkspace } from "~/features/columns/queryListColumnsForWorkspace.server";
+import { AddTaskForm } from "~/features/tasks/AddTaskForm";
+import { insertTask } from "~/features/tasks/insertTask.server";
 import { queryListTasksForWorkspace } from "~/features/tasks/queryListTasksForWorkspace.server";
+import {
+  parseFormData,
+  validateNewTaskInput,
+} from "~/features/tasks/validateNewTaskInput";
 import { queryFindWorkspaceById } from "~/features/workspaces/queryFindWorkspaceById.server";
+import {
+  queryListWorkspaceMembers,
+  type WorkspaceMember,
+} from "~/features/workspaces/queryListWorkspaceMembers.server";
 import { colors } from "~/ui/tokens/colors.stylex";
 import { radius } from "~/ui/tokens/radius.stylex";
 import { spacing } from "~/ui/tokens/spacing.stylex";
@@ -28,10 +38,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const pool = await getPool(config);
 
-  const [workspace, columns, tasks] = await Promise.all([
+  const [workspace, columns, tasks, members] = await Promise.all([
     queryFindWorkspaceById(pool, session.workspaceId),
     queryListColumnsForWorkspace(pool, session.workspaceId),
     queryListTasksForWorkspace(pool, session.workspaceId),
+    queryListWorkspaceMembers(pool, session.workspaceId),
   ]);
 
   // Group tasks by their column. tasks are already sorted by
@@ -51,10 +62,46 @@ export async function loader({ request }: Route.LoaderArgs) {
       name: c.name,
       tasks: tasksByColumn.get(c.id) ?? [],
     })),
+    members: members.map((m) => ({ userId: m.userId, email: m.email })),
   };
 }
 
-export default function Board({ loaderData }: Route.ComponentProps) {
+export async function action({ request }: Route.ActionArgs) {
+  const config = getServerConfig();
+  const session = await requireSession(config, request);
+
+  const formData = await request.formData();
+  if (formData.get("_intent") !== "create-task") {
+    return { error: "Unknown action.", forColumnId: null as string | null };
+  }
+
+  const parsed = validateNewTaskInput(parseFormData(formData));
+  if (!parsed.ok) {
+    const forColumnId = formData.get("column_id");
+    return {
+      error: parsed.error,
+      forColumnId: typeof forColumnId === "string" ? forColumnId : null,
+    };
+  }
+
+  const pool = await getPool(config);
+  const outcome = await insertTask(pool, session.workspaceId, parsed.value);
+
+  if (!outcome.ok) {
+    return { error: outcome.error, forColumnId: parsed.value.columnId };
+  }
+
+  return redirect("/board");
+}
+
+export default function Board({
+  loaderData,
+  actionData,
+}: Route.ComponentProps) {
+  const members: ReadonlyArray<WorkspaceMember> = loaderData.members.map(
+    (m) => ({ userId: m.userId, email: m.email }),
+  ) as never;
+
   return (
     <main {...stylex.props(styles.page)}>
       <header {...stylex.props(styles.header)}>
@@ -69,30 +116,43 @@ export default function Board({ loaderData }: Route.ComponentProps) {
       </header>
 
       <section {...stylex.props(styles.board)} aria-label="Board">
-        {loaderData.columns.map((column) => (
-          <div
-            key={column.id}
-            {...stylex.props(styles.column)}
-            data-testid="board-column"
-          >
-            <h2 {...stylex.props(styles.columnTitle)}>{column.name}</h2>
-            {column.tasks.length === 0 ? (
-              <p {...stylex.props(styles.columnEmpty)}>No tasks yet.</p>
-            ) : (
-              <ul {...stylex.props(styles.taskList)}>
-                {column.tasks.map((task) => (
-                  <li
-                    key={task.id}
-                    {...stylex.props(styles.taskCard)}
-                    data-testid="board-task"
-                  >
-                    {task.title}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        ))}
+        {loaderData.columns.map((column) => {
+          const errorForThisColumn =
+            actionData !== undefined &&
+            actionData.forColumnId === column.id &&
+            actionData.error !== ""
+              ? actionData.error
+              : null;
+          return (
+            <div
+              key={column.id}
+              {...stylex.props(styles.column)}
+              data-testid="board-column"
+            >
+              <h2 {...stylex.props(styles.columnTitle)}>{column.name}</h2>
+              {column.tasks.length === 0 ? (
+                <p {...stylex.props(styles.columnEmpty)}>No tasks yet.</p>
+              ) : (
+                <ul {...stylex.props(styles.taskList)}>
+                  {column.tasks.map((task) => (
+                    <li
+                      key={task.id}
+                      {...stylex.props(styles.taskCard)}
+                      data-testid="board-task"
+                    >
+                      {task.title}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <AddTaskForm
+                columnId={column.id}
+                members={members}
+                error={errorForThisColumn}
+              />
+            </div>
+          );
+        })}
       </section>
     </main>
   );
