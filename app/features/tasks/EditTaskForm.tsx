@@ -1,4 +1,5 @@
 import * as stylex from "@stylexjs/stylex";
+import { useState } from "react";
 import { Form } from "react-router";
 import type { ColumnId } from "~/features/columns/columnsTypes";
 import type { TaskId } from "~/features/tasks/tasksTypes";
@@ -40,6 +41,7 @@ type Props = {
 };
 
 export function EditTaskForm(props: Props) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const values = props.values ?? {
     title: props.initial.title,
     description: props.initial.description,
@@ -48,102 +50,150 @@ export function EditTaskForm(props: Props) {
     dueDate: props.initial.dueDate,
   };
 
+  const editFormId = "edit-task-form-fields";
+  const deleteFormId = "delete-task-form";
+
   return (
-    <Form
-      method="post"
-      {...stylex.props(styles.form)}
-      data-testid="edit-task-form"
-    >
-      <input type="hidden" name="_intent" value="update-task" />
-      <input type="hidden" name="task_id" value={props.taskId} />
+    <>
+      <Form
+        method="post"
+        id={editFormId}
+        {...stylex.props(styles.form)}
+        data-testid="edit-task-form"
+      >
+        <input type="hidden" name="_intent" value="update-task" />
+        <input type="hidden" name="task_id" value={props.taskId} />
 
-      <label {...stylex.props(styles.label)}>
-        <span {...stylex.props(styles.labelText)}>Title</span>
-        <input
-          type="text"
-          name="title"
-          defaultValue={values.title ?? ""}
-          maxLength={200}
-          required
-          {...stylex.props(styles.input)}
-        />
-      </label>
+        <label {...stylex.props(styles.label)}>
+          <span {...stylex.props(styles.labelText)}>Title</span>
+          <input
+            type="text"
+            name="title"
+            defaultValue={values.title ?? ""}
+            maxLength={200}
+            required
+            {...stylex.props(styles.input)}
+          />
+        </label>
 
-      <label {...stylex.props(styles.label)}>
-        <span {...stylex.props(styles.labelText)}>Description</span>
-        <textarea
-          name="description"
-          defaultValue={values.description ?? ""}
-          rows={4}
-          maxLength={2000}
-          {...stylex.props(styles.input, styles.textarea)}
-        />
-      </label>
+        <label {...stylex.props(styles.label)}>
+          <span {...stylex.props(styles.labelText)}>Description</span>
+          <textarea
+            name="description"
+            defaultValue={values.description ?? ""}
+            rows={4}
+            maxLength={2000}
+            {...stylex.props(styles.input, styles.textarea)}
+          />
+        </label>
 
-      <label {...stylex.props(styles.label)}>
-        <span {...stylex.props(styles.labelText)}>Column</span>
-        <select
-          name="column_id"
-          defaultValue={values.columnId ?? props.initial.columnId}
-          {...stylex.props(styles.input)}
-        >
-          {props.columns.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </label>
+        <label {...stylex.props(styles.label)}>
+          <span {...stylex.props(styles.labelText)}>Column</span>
+          <select
+            name="column_id"
+            defaultValue={values.columnId ?? props.initial.columnId}
+            {...stylex.props(styles.input)}
+          >
+            {props.columns.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <label {...stylex.props(styles.label)}>
-        <span {...stylex.props(styles.labelText)}>Assignee</span>
-        <select
-          name="assignee_user_id"
-          defaultValue={values.assigneeUserId ?? ""}
-          {...stylex.props(styles.input)}
-        >
-          <option value="">Unassigned</option>
-          {props.members.map((m) => (
-            <option key={m.userId} value={m.userId}>
-              {m.email}
-            </option>
-          ))}
-        </select>
-      </label>
+        <label {...stylex.props(styles.label)}>
+          <span {...stylex.props(styles.labelText)}>Assignee</span>
+          <select
+            name="assignee_user_id"
+            defaultValue={values.assigneeUserId ?? ""}
+            {...stylex.props(styles.input)}
+          >
+            <option value="">Unassigned</option>
+            {props.members.map((m) => (
+              <option key={m.userId} value={m.userId}>
+                {m.email}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <label {...stylex.props(styles.label)}>
-        <span {...stylex.props(styles.labelText)}>Due date</span>
-        <input
-          type="date"
-          name="due_date"
-          defaultValue={values.dueDate ?? ""}
-          {...stylex.props(styles.input)}
-        />
-      </label>
+        <label {...stylex.props(styles.label)}>
+          <span {...stylex.props(styles.labelText)}>Due date</span>
+          <input
+            type="date"
+            name="due_date"
+            defaultValue={values.dueDate ?? ""}
+            {...stylex.props(styles.input)}
+          />
+        </label>
 
-      {props.error !== null && (
-        <p {...stylex.props(styles.error)} role="alert">
-          {props.error}
-        </p>
+        {props.error !== null && (
+          <p {...stylex.props(styles.error)} role="alert">
+            {props.error}
+          </p>
+        )}
+      </Form>
+
+      {/* Sibling delete form — kept separate so the Confirm-delete button
+          submits only the delete intent without picking up the edit fields. */}
+      <Form method="post" id={deleteFormId} data-testid="delete-task-form">
+        <input type="hidden" name="_intent" value="delete-task" />
+        <input type="hidden" name="task_id" value={props.taskId} />
+      </Form>
+
+      {confirmingDelete ? (
+        <div {...stylex.props(styles.footer, styles.footerConfirm)}>
+          <p {...stylex.props(styles.confirmText)}>Delete this task?</p>
+          <div {...stylex.props(styles.buttonGroup)}>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              {...stylex.props(styles.cancel)}
+              data-testid="delete-task-cancel"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form={deleteFormId}
+              {...stylex.props(styles.dangerConfirm)}
+              data-testid="delete-task-confirm"
+            >
+              Confirm delete
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div {...stylex.props(styles.footer)}>
+          <button
+            type="button"
+            onClick={() => setConfirmingDelete(true)}
+            {...stylex.props(styles.dangerGhost)}
+            data-testid="delete-task-toggle"
+          >
+            Delete
+          </button>
+          <div {...stylex.props(styles.buttonGroup)}>
+            <button
+              type="button"
+              onClick={props.onCancel}
+              {...stylex.props(styles.cancel)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form={editFormId}
+              {...stylex.props(styles.submit)}
+              data-testid="edit-task-submit"
+            >
+              Save
+            </button>
+          </div>
+        </div>
       )}
-
-      <div {...stylex.props(styles.buttons)}>
-        <button
-          type="button"
-          onClick={props.onCancel}
-          {...stylex.props(styles.cancel)}
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          {...stylex.props(styles.submit)}
-          data-testid="edit-task-submit"
-        >
-          Save
-        </button>
-      </div>
-    </Form>
+    </>
   );
 }
 
@@ -187,11 +237,21 @@ const styles = stylex.create({
     lineHeight: lineHeight.body,
     color: colors.danger,
   },
-  buttons: {
+  footer: {
     display: "flex",
-    justifyContent: "flex-end",
-    gap: spacing.x2,
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.x3,
     marginTop: spacing.x2,
+  },
+  footerConfirm: {
+    padding: spacing.x3,
+    backgroundColor: colors.dangerBg,
+    borderRadius: radius.md,
+  },
+  buttonGroup: {
+    display: "flex",
+    gap: spacing.x2,
   },
   cancel: {
     padding: `${spacing.x2} ${spacing.x3}`,
@@ -216,5 +276,33 @@ const styles = stylex.create({
     borderWidth: 0,
     borderRadius: radius.md,
     cursor: "pointer",
+  },
+  dangerGhost: {
+    padding: `${spacing.x2} ${spacing.x3}`,
+    fontFamily: fontFamily.text,
+    fontSize: fontSize.bodySm,
+    fontWeight: fontWeight.medium,
+    color: colors.danger,
+    backgroundColor: { default: "transparent", ":hover": colors.dangerBg },
+    borderWidth: 0,
+    borderRadius: radius.md,
+    cursor: "pointer",
+  },
+  dangerConfirm: {
+    padding: `${spacing.x2} ${spacing.x4}`,
+    fontFamily: fontFamily.text,
+    fontSize: fontSize.bodySm,
+    fontWeight: fontWeight.medium,
+    color: colors.textInverse,
+    backgroundColor: { default: colors.danger, ":hover": colors.danger },
+    borderWidth: 0,
+    borderRadius: radius.md,
+    cursor: "pointer",
+  },
+  confirmText: {
+    margin: 0,
+    fontSize: fontSize.bodySm,
+    fontWeight: fontWeight.medium,
+    color: colors.danger,
   },
 });
