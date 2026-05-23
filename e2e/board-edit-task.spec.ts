@@ -57,9 +57,7 @@ test("clicking a task opens the edit modal and saving updates it across reload",
 
     // Edit title, description, due date; move to "Done".
     await dialog.getByLabel("Title").fill("Renamed");
-    await dialog
-      .getByLabel("Description")
-      .fill("Filled in via the edit modal");
+    await dialog.getByLabel("Description").fill("Filled in via the edit modal");
     await dialog.getByLabel("Column").selectOption({ label: "Done" });
     await dialog.getByLabel("Due date").fill("2026-08-15");
 
@@ -114,9 +112,9 @@ test("empty title shows inline error and preserves the user's other edits", asyn
     // Modal stays open with the error visible and the description preserved.
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByRole("alert")).toContainText(/title is required/i);
-    await expect(page.getByRole("dialog").getByLabel("Description")).toHaveValue(
-      "Edited description",
-    );
+    await expect(
+      page.getByRole("dialog").getByLabel("Description"),
+    ).toHaveValue("Edited description");
   } finally {
     exec(`DELETE FROM users WHERE email = '${email}';`);
   }

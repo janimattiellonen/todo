@@ -5,6 +5,7 @@ import { getPool } from "~/database/pool.server";
 import { requireSession } from "~/features/auth/requireSession.server";
 import { queryListColumnsForWorkspace } from "~/features/columns/queryListColumnsForWorkspace.server";
 import { AddTaskForm } from "~/features/tasks/AddTaskForm";
+import { deleteTask } from "~/features/tasks/deleteTask.server";
 import { EditTaskForm } from "~/features/tasks/EditTaskForm";
 import { insertTask } from "~/features/tasks/insertTask.server";
 import { queryFindTaskById } from "~/features/tasks/queryFindTaskById.server";
@@ -200,6 +201,16 @@ export async function action({
         },
       };
     }
+    return redirect("/board");
+  }
+
+  if (intent === "delete-task") {
+    const taskIdRaw = formData.get("task_id");
+    if (typeof taskIdRaw !== "string" || taskIdRaw.length === 0) {
+      // Silent redirect — there is no UI surface for a bad delete request.
+      return redirect("/board");
+    }
+    await deleteTask(pool, session.workspaceId, toTaskId(taskIdRaw));
     return redirect("/board");
   }
 
