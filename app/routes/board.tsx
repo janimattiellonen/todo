@@ -1,21 +1,30 @@
 import * as stylex from "@stylexjs/stylex";
-import { Form, redirect } from "react-router";
+import { Form, redirect, useNavigate } from "react-router";
 import { getServerConfig } from "~/config/serverConfig.server";
 import { getPool } from "~/database/pool.server";
 import { requireSession } from "~/features/auth/requireSession.server";
 import { queryListColumnsForWorkspace } from "~/features/columns/queryListColumnsForWorkspace.server";
 import { AddTaskForm } from "~/features/tasks/AddTaskForm";
+import { EditTaskForm } from "~/features/tasks/EditTaskForm";
 import { insertTask } from "~/features/tasks/insertTask.server";
+import { queryFindTaskById } from "~/features/tasks/queryFindTaskById.server";
 import { queryListTasksForWorkspace } from "~/features/tasks/queryListTasksForWorkspace.server";
+import { toTaskId } from "~/features/tasks/tasksTypes";
+import { updateTask } from "~/features/tasks/updateTask.server";
 import {
   parseFormData,
   validateNewTaskInput,
 } from "~/features/tasks/validateNewTaskInput";
+import {
+  parseUpdateFormData,
+  validateUpdateTaskInput,
+} from "~/features/tasks/validateUpdateTaskInput";
 import { queryFindWorkspaceById } from "~/features/workspaces/queryFindWorkspaceById.server";
 import {
   queryListWorkspaceMembers,
   type WorkspaceMember,
 } from "~/features/workspaces/queryListWorkspaceMembers.server";
+import { Modal } from "~/ui/Modal/Modal";
 import { colors } from "~/ui/tokens/colors.stylex";
 import { radius } from "~/ui/tokens/radius.stylex";
 import { spacing } from "~/ui/tokens/spacing.stylex";
@@ -55,6 +64,20 @@ export async function loader({ request }: Route.LoaderArgs) {
     tasksByColumn.set(task.columnId, bucket);
   }
 
+  // If `?edit=<taskId>` is present and the task belongs to this
+  // workspace, surface it so the page can render the edit modal.
+  const url = new URL(request.url);
+  const editParam = url.searchParams.get("edit");
+  let editingTask: ReturnType<typeof serialiseEditableTask> | null = null;
+  if (editParam !== null) {
+    const found = await queryFindTaskById(
+      pool,
+      session.workspaceId,
+      toTaskId(editParam),
+    );
+    if (found !== null) editingTask = serialiseEditableTask(found);
+  }
+
   return {
     workspaceName: workspace?.name ?? "Workspace",
     columns: columns.map((c) => ({
@@ -62,45 +85,144 @@ export async function loader({ request }: Route.LoaderArgs) {
       name: c.name,
       tasks: tasksByColumn.get(c.id) ?? [],
     })),
+    columnOptions: columns.map((c) => ({ id: c.id, name: c.name })),
     members: members.map((m) => ({ userId: m.userId, email: m.email })),
+    editingTask,
   };
 }
 
-export async function action({ request }: Route.ActionArgs) {
+function serialiseEditableTask(t: {
+  id: string;
+  columnId: string;
+  title: string;
+  description: string | null;
+  assigneeUserId: string | null;
+  dueDate: string | null;
+}) {
+  return {
+    id: t.id,
+    columnId: t.columnId,
+    title: t.title,
+    description: t.description,
+    assigneeUserId: t.assigneeUserId,
+    dueDate: t.dueDate,
+  };
+}
+
+type CreateActionResult = {
+  intent: "create-task";
+  error: string;
+  forColumnId: string | null;
+};
+
+type UpdateActionResult = {
+  intent: "update-task";
+  error: string;
+  taskId: string | null;
+  values: {
+    title: string | null;
+    description: string | null;
+    columnId: string | null;
+    assigneeUserId: string | null;
+    dueDate: string | null;
+  };
+};
+
+export async function action({
+  request,
+}: Route.ActionArgs): Promise<
+  CreateActionResult | UpdateActionResult | Response
+> {
   const config = getServerConfig();
   const session = await requireSession(config, request);
 
   const formData = await request.formData();
-  if (formData.get("_intent") !== "create-task") {
-    return { error: "Unknown action.", forColumnId: null as string | null };
-  }
-
-  const parsed = validateNewTaskInput(parseFormData(formData));
-  if (!parsed.ok) {
-    const forColumnId = formData.get("column_id");
-    return {
-      error: parsed.error,
-      forColumnId: typeof forColumnId === "string" ? forColumnId : null,
-    };
-  }
-
+  const intent = formData.get("_intent");
   const pool = await getPool(config);
-  const outcome = await insertTask(pool, session.workspaceId, parsed.value);
 
-  if (!outcome.ok) {
-    return { error: outcome.error, forColumnId: parsed.value.columnId };
+  if (intent === "create-task") {
+    const parsed = validateNewTaskInput(parseFormData(formData));
+    if (!parsed.ok) {
+      const forColumnId = formData.get("column_id");
+      return {
+        intent: "create-task",
+        error: parsed.error,
+        forColumnId: typeof forColumnId === "string" ? forColumnId : null,
+      };
+    }
+
+    const outcome = await insertTask(pool, session.workspaceId, parsed.value);
+    if (!outcome.ok) {
+      return {
+        intent: "create-task",
+        error: outcome.error,
+        forColumnId: parsed.value.columnId,
+      };
+    }
+    return redirect("/board");
   }
 
-  return redirect("/board");
+  if (intent === "update-task") {
+    const raw = parseUpdateFormData(formData);
+    const parsed = validateUpdateTaskInput(raw);
+    if (!parsed.ok) {
+      const r = raw as Record<string, unknown>;
+      return {
+        intent: "update-task",
+        error: parsed.error,
+        taskId: typeof r["taskId"] === "string" ? r["taskId"] : null,
+        values: {
+          title: typeof r["title"] === "string" ? r["title"] : null,
+          description:
+            typeof r["description"] === "string" ? r["description"] : null,
+          columnId: typeof r["columnId"] === "string" ? r["columnId"] : null,
+          assigneeUserId:
+            typeof r["assigneeUserId"] === "string"
+              ? r["assigneeUserId"]
+              : null,
+          dueDate: typeof r["dueDate"] === "string" ? r["dueDate"] : null,
+        },
+      };
+    }
+
+    const outcome = await updateTask(pool, session.workspaceId, parsed.value);
+    if (!outcome.ok) {
+      return {
+        intent: "update-task",
+        error: outcome.error,
+        taskId: parsed.value.taskId,
+        values: {
+          title: parsed.value.title,
+          description: parsed.value.description,
+          columnId: parsed.value.columnId,
+          assigneeUserId: parsed.value.assigneeUserId,
+          dueDate: parsed.value.dueDate,
+        },
+      };
+    }
+    return redirect("/board");
+  }
+
+  return {
+    intent: "create-task",
+    error: "Unknown action.",
+    forColumnId: null,
+  };
 }
 
 export default function Board({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
+  const navigate = useNavigate();
   const members: ReadonlyArray<WorkspaceMember> = loaderData.members.map(
     (m) => ({ userId: m.userId, email: m.email }),
   ) as never;
+
+  const updateError =
+    actionData !== undefined && actionData.intent === "update-task"
+      ? actionData
+      : null;
 
   return (
     <main {...stylex.props(styles.page)}>
@@ -119,6 +241,7 @@ export default function Board({
         {loaderData.columns.map((column) => {
           const errorForThisColumn =
             actionData !== undefined &&
+            actionData.intent === "create-task" &&
             actionData.forColumnId === column.id &&
             actionData.error !== ""
               ? actionData.error
@@ -135,12 +258,15 @@ export default function Board({
               ) : (
                 <ul {...stylex.props(styles.taskList)}>
                   {column.tasks.map((task) => (
-                    <li
-                      key={task.id}
-                      {...stylex.props(styles.taskCard)}
-                      data-testid="board-task"
-                    >
-                      {task.title}
+                    <li key={task.id} {...stylex.props(styles.taskListItem)}>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/board?edit=${task.id}`)}
+                        {...stylex.props(styles.taskCard)}
+                        data-testid="board-task"
+                      >
+                        {task.title}
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -154,6 +280,41 @@ export default function Board({
           );
         })}
       </section>
+
+      {loaderData.editingTask !== null && (
+        <Modal title="Edit task" onClose={() => navigate("/board")}>
+          <EditTaskForm
+            taskId={loaderData.editingTask.id as never}
+            initial={{
+              title: loaderData.editingTask.title,
+              description: loaderData.editingTask.description,
+              columnId: loaderData.editingTask.columnId as never,
+              assigneeUserId: loaderData.editingTask.assigneeUserId as never,
+              dueDate: loaderData.editingTask.dueDate,
+            }}
+            values={
+              updateError !== null &&
+              updateError.taskId === loaderData.editingTask.id
+                ? updateError.values
+                : null
+            }
+            error={
+              updateError !== null &&
+              updateError.taskId === loaderData.editingTask.id
+                ? updateError.error
+                : null
+            }
+            members={members}
+            columns={
+              loaderData.columnOptions.map((c) => ({
+                id: c.id,
+                name: c.name,
+              })) as never
+            }
+            onCancel={() => navigate("/board")}
+          />
+        </Modal>
+      )}
     </main>
   );
 }
@@ -241,7 +402,12 @@ const styles = stylex.create({
     flexDirection: "column",
     gap: spacing.x2,
   },
+  taskListItem: {
+    display: "block",
+  },
   taskCard: {
+    display: "block",
+    width: "100%",
     padding: spacing.x3,
     backgroundColor: colors.surface1,
     borderWidth: "1px",
@@ -251,8 +417,11 @@ const styles = stylex.create({
       ":hover": colors.borderDefault,
     },
     borderRadius: radius.md,
+    fontFamily: fontFamily.text,
     fontSize: fontSize.bodyMd,
     lineHeight: lineHeight.body,
     color: colors.textDefault,
+    textAlign: "left",
+    cursor: "pointer",
   },
 });
