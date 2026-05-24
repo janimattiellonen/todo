@@ -1,13 +1,30 @@
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import * as stylex from "@stylexjs/stylex";
-import { Form, redirect, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { Form, redirect, useNavigate, useSubmit } from "react-router";
 import { getServerConfig } from "~/config/serverConfig.server";
 import { getPool } from "~/database/pool.server";
 import { requireSession } from "~/features/auth/requireSession.server";
+import { toColumnId } from "~/features/columns/columnsTypes";
 import { queryListColumnsForWorkspace } from "~/features/columns/queryListColumnsForWorkspace.server";
 import { AddTaskForm } from "~/features/tasks/AddTaskForm";
 import { deleteTask } from "~/features/tasks/deleteTask.server";
 import { EditTaskForm } from "~/features/tasks/EditTaskForm";
 import { insertTask } from "~/features/tasks/insertTask.server";
+import { moveTask } from "~/features/tasks/moveTask.server";
 import { queryFindTaskById } from "~/features/tasks/queryFindTaskById.server";
 import { queryListTasksForWorkspace } from "~/features/tasks/queryListTasksForWorkspace.server";
 import { toTaskId } from "~/features/tasks/tasksTypes";
@@ -214,6 +231,29 @@ export async function action({
     return redirect("/board");
   }
 
+  if (intent === "move-task") {
+    const taskIdRaw = formData.get("task_id");
+    const destColRaw = formData.get("destination_column_id");
+    const destIdxRaw = formData.get("destination_index");
+    if (
+      typeof taskIdRaw !== "string" ||
+      typeof destColRaw !== "string" ||
+      typeof destIdxRaw !== "string"
+    ) {
+      return redirect("/board");
+    }
+    const idx = Number.parseInt(destIdxRaw, 10);
+    if (Number.isNaN(idx) || idx < 0) {
+      return redirect("/board");
+    }
+    await moveTask(pool, session.workspaceId, {
+      taskId: toTaskId(taskIdRaw),
+      destinationColumnId: toColumnId(destColRaw),
+      destinationIndex: idx,
+    });
+    return redirect("/board");
+  }
+
   return {
     intent: "create-task",
     error: "Unknown action.",
@@ -221,11 +261,14 @@ export async function action({
   };
 }
 
+const COLUMN_DROPPABLE_PREFIX = "column:";
+
 export default function Board({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
   const navigate = useNavigate();
+  const submit = useSubmit();
   const members: ReadonlyArray<WorkspaceMember> = loaderData.members.map(
     (m) => ({ userId: m.userId, email: m.email }),
   ) as never;
@@ -234,6 +277,75 @@ export default function Board({
     actionData !== undefined && actionData.intent === "update-task"
       ? actionData
       : null;
+
+  // Local view of the board so dnd-kit can reorder optimistically while
+  // the server confirms. Synced to loader data on every navigation.
+  const [columnState, setColumnState] = useState(() => loaderData.columns);
+  useEffect(() => {
+    setColumnState(loaderData.columns);
+  }, [loaderData.columns]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
+
+  function onDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (over === null) return;
+    const taskId = String(active.id);
+    const overId = String(over.id);
+    if (taskId === overId) return;
+
+    const sourceColumn = columnState.find((c) =>
+      c.tasks.some((t) => t.id === taskId),
+    );
+    if (sourceColumn === undefined) return;
+    const movingTask = sourceColumn.tasks.find((t) => t.id === taskId);
+    if (movingTask === undefined) return;
+
+    let destColumnId: string;
+    let destIndex: number;
+
+    if (overId.startsWith(COLUMN_DROPPABLE_PREFIX)) {
+      // Dropped on the empty area of a column.
+      destColumnId = overId.slice(COLUMN_DROPPABLE_PREFIX.length);
+      const destCol = columnState.find((c) => c.id === destColumnId);
+      destIndex =
+        destCol === undefined
+          ? 0
+          : destCol.tasks.filter((t) => t.id !== taskId).length;
+    } else {
+      // Dropped on/near another task.
+      const overColumn = columnState.find((c) =>
+        c.tasks.some((t) => t.id === overId),
+      );
+      if (overColumn === undefined) return;
+      destColumnId = overColumn.id;
+      const filtered = overColumn.tasks.filter((t) => t.id !== taskId);
+      const idx = filtered.findIndex((t) => t.id === overId);
+      destIndex = idx === -1 ? filtered.length : idx;
+    }
+
+    // Optimistic local reorder.
+    setColumnState((prev) => {
+      const next = prev.map((c) => ({
+        ...c,
+        tasks: c.tasks.filter((t) => t.id !== taskId),
+      }));
+      const dest = next.find((c) => c.id === destColumnId);
+      if (dest !== undefined) {
+        dest.tasks.splice(destIndex, 0, movingTask);
+      }
+      return next;
+    });
+
+    const fd = new FormData();
+    fd.set("_intent", "move-task");
+    fd.set("task_id", taskId);
+    fd.set("destination_column_id", destColumnId);
+    fd.set("destination_index", String(destIndex));
+    submit(fd, { method: "post" });
+  }
 
   return (
     <main {...stylex.props(styles.page)}>
@@ -248,49 +360,28 @@ export default function Board({
         </Form>
       </header>
 
-      <section {...stylex.props(styles.board)} aria-label="Board">
-        {loaderData.columns.map((column) => {
-          const errorForThisColumn =
-            actionData !== undefined &&
-            actionData.intent === "create-task" &&
-            actionData.forColumnId === column.id &&
-            actionData.error !== ""
-              ? actionData.error
-              : null;
-          return (
-            <div
-              key={column.id}
-              {...stylex.props(styles.column)}
-              data-testid="board-column"
-            >
-              <h2 {...stylex.props(styles.columnTitle)}>{column.name}</h2>
-              {column.tasks.length === 0 ? (
-                <p {...stylex.props(styles.columnEmpty)}>No tasks yet.</p>
-              ) : (
-                <ul {...stylex.props(styles.taskList)}>
-                  {column.tasks.map((task) => (
-                    <li key={task.id} {...stylex.props(styles.taskListItem)}>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/board?edit=${task.id}`)}
-                        {...stylex.props(styles.taskCard)}
-                        data-testid="board-task"
-                      >
-                        {task.title}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <AddTaskForm
-                columnId={column.id}
+      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+        <section {...stylex.props(styles.board)} aria-label="Board">
+          {columnState.map((column) => {
+            const errorForThisColumn =
+              actionData !== undefined &&
+              actionData.intent === "create-task" &&
+              actionData.forColumnId === column.id &&
+              actionData.error !== ""
+                ? actionData.error
+                : null;
+            return (
+              <BoardColumn
+                key={column.id}
+                column={column}
                 members={members}
-                error={errorForThisColumn}
+                addTaskError={errorForThisColumn}
+                onTaskClick={(id) => navigate(`/board?edit=${id}`)}
               />
-            </div>
-          );
-        })}
-      </section>
+            );
+          })}
+        </section>
+      </DndContext>
 
       {loaderData.editingTask !== null && (
         <Modal title="Edit task" onClose={() => navigate("/board")}>
@@ -327,6 +418,95 @@ export default function Board({
         </Modal>
       )}
     </main>
+  );
+}
+
+type BoardColumnProps = {
+  column: {
+    id: string;
+    name: string;
+    tasks: Array<{ id: string; title: string }>;
+  };
+  members: ReadonlyArray<WorkspaceMember>;
+  addTaskError: string | null;
+  onTaskClick: (taskId: string) => void;
+};
+
+function BoardColumn(props: BoardColumnProps) {
+  const { setNodeRef } = useDroppable({
+    id: `${COLUMN_DROPPABLE_PREFIX}${props.column.id}`,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...stylex.props(styles.column)}
+      data-testid="board-column"
+    >
+      <h2 {...stylex.props(styles.columnTitle)}>{props.column.name}</h2>
+      <SortableContext
+        items={props.column.tasks.map((t) => t.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        {props.column.tasks.length === 0 ? (
+          <p {...stylex.props(styles.columnEmpty)}>No tasks yet.</p>
+        ) : (
+          <ul {...stylex.props(styles.taskList)}>
+            {props.column.tasks.map((task) => (
+              <SortableTask
+                key={task.id}
+                taskId={task.id}
+                title={task.title}
+                onClick={() => props.onTaskClick(task.id)}
+              />
+            ))}
+          </ul>
+        )}
+      </SortableContext>
+      <AddTaskForm
+        columnId={props.column.id as never}
+        members={props.members}
+        error={props.addTaskError}
+      />
+    </div>
+  );
+}
+
+type SortableTaskProps = {
+  taskId: string;
+  title: string;
+  onClick: () => void;
+};
+
+function SortableTask(props: SortableTaskProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: props.taskId });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <li {...stylex.props(styles.taskListItem)} style={style} ref={setNodeRef}>
+      <button
+        type="button"
+        onClick={props.onClick}
+        {...stylex.props(styles.taskCard)}
+        data-testid="board-task"
+        {...attributes}
+        {...listeners}
+      >
+        {props.title}
+      </button>
+    </li>
   );
 }
 

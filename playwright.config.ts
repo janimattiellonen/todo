@@ -5,7 +5,12 @@ const BASE_URL = `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: true,
+  // Tests share the dev DB and the dev server's mock-email singleton —
+  // running them in parallel causes flakes when two tests mutate
+  // overlapping state at the same time. Sequential is fast enough at
+  // MVP scale (~10s for the whole suite).
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: Boolean(process.env["CI"]),
   retries: process.env["CI"] ? 2 : 0,
   reporter: "list",
