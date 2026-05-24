@@ -1,6 +1,7 @@
 import {
   DndContext,
   type DragEndEvent,
+  KeyboardSensor,
   PointerSensor,
   useDroppable,
   useSensor,
@@ -8,6 +9,7 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
+  sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
@@ -235,16 +237,20 @@ export async function action({
     const taskIdRaw = formData.get("task_id");
     const destColRaw = formData.get("destination_column_id");
     const destIdxRaw = formData.get("destination_index");
-    if (
-      typeof taskIdRaw !== "string" ||
-      typeof destColRaw !== "string" ||
-      typeof destIdxRaw !== "string"
-    ) {
+    if (typeof taskIdRaw !== "string" || typeof destColRaw !== "string") {
       return redirect("/board");
     }
-    const idx = Number.parseInt(destIdxRaw, 10);
-    if (Number.isNaN(idx) || idx < 0) {
-      return redirect("/board");
+    // Missing / non-numeric destination_index means "end of column" —
+    // computeNewPosition clamps high indexes to the end of the list.
+    // This is the path the touch/keyboard menu uses; the drag path
+    // always supplies an exact integer index.
+    let idx = Number.POSITIVE_INFINITY;
+    if (typeof destIdxRaw === "string" && destIdxRaw.length > 0) {
+      const parsed = Number.parseInt(destIdxRaw, 10);
+      if (Number.isNaN(parsed) || parsed < 0) {
+        return redirect("/board");
+      }
+      idx = parsed;
     }
     await moveTask(pool, session.workspaceId, {
       taskId: toTaskId(taskIdRaw),
@@ -287,6 +293,9 @@ export default function Board({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   function onDragEnd(event: DragEndEvent) {
@@ -374,6 +383,7 @@ export default function Board({
               <BoardColumn
                 key={column.id}
                 column={column}
+                allColumns={loaderData.columnOptions}
                 members={members}
                 addTaskError={errorForThisColumn}
                 onTaskClick={(id) => navigate(`/board?edit=${id}`)}
@@ -421,12 +431,15 @@ export default function Board({
   );
 }
 
+type ColumnOption = { id: string; name: string };
+
 type BoardColumnProps = {
   column: {
     id: string;
     name: string;
     tasks: Array<{ id: string; title: string }>;
   };
+  allColumns: ReadonlyArray<ColumnOption>;
   members: ReadonlyArray<WorkspaceMember>;
   addTaskError: string | null;
   onTaskClick: (taskId: string) => void;
@@ -457,6 +470,8 @@ function BoardColumn(props: BoardColumnProps) {
                 key={task.id}
                 taskId={task.id}
                 title={task.title}
+                currentColumnId={props.column.id}
+                allColumns={props.allColumns}
                 onClick={() => props.onTaskClick(task.id)}
               />
             ))}
@@ -475,6 +490,8 @@ function BoardColumn(props: BoardColumnProps) {
 type SortableTaskProps = {
   taskId: string;
   title: string;
+  currentColumnId: string;
+  allColumns: ReadonlyArray<ColumnOption>;
   onClick: () => void;
 };
 
@@ -496,17 +513,76 @@ function SortableTask(props: SortableTaskProps) {
 
   return (
     <li {...stylex.props(styles.taskListItem)} style={style} ref={setNodeRef}>
-      <button
-        type="button"
-        onClick={props.onClick}
-        {...stylex.props(styles.taskCard)}
-        data-testid="board-task"
-        {...attributes}
-        {...listeners}
-      >
-        {props.title}
-      </button>
+      <div {...stylex.props(styles.taskCardRow)}>
+        <button
+          type="button"
+          onClick={props.onClick}
+          {...stylex.props(styles.taskCard, styles.taskCardTitle)}
+          data-testid="board-task"
+          {...attributes}
+          {...listeners}
+        >
+          {props.title}
+        </button>
+        <MoveTaskMenu
+          taskId={props.taskId}
+          currentColumnId={props.currentColumnId}
+          allColumns={props.allColumns}
+        />
+      </div>
     </li>
+  );
+}
+
+type MoveTaskMenuProps = {
+  taskId: string;
+  currentColumnId: string;
+  allColumns: ReadonlyArray<ColumnOption>;
+};
+
+/**
+ * Touch + keyboard fallback for moving a task: a native `<details>`
+ * disclosure ("⋯") that expands to a small form with one submit button
+ * per other column. Selecting a column submits `_intent=move-task`
+ * (without `destination_index`, so the orchestrator drops the task at
+ * the end of the destination column).
+ *
+ * Native `<details>` covers the keyboard story for free: Tab focuses
+ * the summary, Enter/Space toggles it, Tab moves into the options,
+ * Enter submits.
+ */
+function MoveTaskMenu(props: MoveTaskMenuProps) {
+  const others = props.allColumns.filter((c) => c.id !== props.currentColumnId);
+
+  return (
+    <details {...stylex.props(styles.menuDetails)} data-testid="move-task-menu">
+      <summary
+        {...stylex.props(styles.menuSummary)}
+        aria-label="Move task to another column"
+        data-testid="move-task-toggle"
+      >
+        ⋯
+      </summary>
+      <div {...stylex.props(styles.menuPopup)} data-testid="move-task-popup">
+        <Form method="post">
+          <input type="hidden" name="_intent" value="move-task" />
+          <input type="hidden" name="task_id" value={props.taskId} />
+          <p {...stylex.props(styles.menuLabel)}>Move to:</p>
+          {others.map((col) => (
+            <button
+              key={col.id}
+              type="submit"
+              name="destination_column_id"
+              value={col.id}
+              {...stylex.props(styles.menuItem)}
+              data-testid={`move-task-to-${col.name.toLowerCase().replace(/\s+/g, "-")}`}
+            >
+              {col.name}
+            </button>
+          ))}
+        </Form>
+      </div>
+    </details>
   );
 }
 
@@ -596,9 +672,14 @@ const styles = stylex.create({
   taskListItem: {
     display: "block",
   },
+  taskCardRow: {
+    position: "relative",
+    display: "flex",
+    alignItems: "stretch",
+    gap: spacing.x1,
+  },
   taskCard: {
     display: "block",
-    width: "100%",
     padding: spacing.x3,
     backgroundColor: colors.surface1,
     borderWidth: "1px",
@@ -613,6 +694,70 @@ const styles = stylex.create({
     lineHeight: lineHeight.body,
     color: colors.textDefault,
     textAlign: "left",
+    cursor: "pointer",
+  },
+  taskCardTitle: {
+    flex: 1,
+    minWidth: 0,
+  },
+  menuDetails: {
+    position: "relative",
+  },
+  menuSummary: {
+    listStyle: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: spacing.x6,
+    height: "100%",
+    fontFamily: fontFamily.text,
+    fontSize: fontSize.titleMd,
+    lineHeight: 1,
+    color: colors.textMuted,
+    backgroundColor: { default: "transparent", ":hover": colors.surface3 },
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: {
+      default: "transparent",
+      ":hover": colors.borderSubtle,
+    },
+    borderRadius: radius.md,
+    cursor: "pointer",
+    userSelect: "none",
+  },
+  menuPopup: {
+    position: "absolute",
+    right: 0,
+    top: "calc(100% + 4px)",
+    minWidth: "160px",
+    padding: spacing.x2,
+    backgroundColor: colors.surface1,
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: colors.borderSubtle,
+    borderRadius: radius.md,
+    zIndex: 10,
+    display: "flex",
+    flexDirection: "column",
+    gap: spacing.x1,
+  },
+  menuLabel: {
+    margin: 0,
+    fontSize: fontSize.bodyXxs,
+    fontWeight: fontWeight.medium,
+    letterSpacing: letterSpacing.wide,
+    textTransform: "uppercase",
+    color: colors.textMuted,
+  },
+  menuItem: {
+    textAlign: "left",
+    padding: `${spacing.x2} ${spacing.x3}`,
+    fontFamily: fontFamily.text,
+    fontSize: fontSize.bodySm,
+    color: colors.textDefault,
+    backgroundColor: { default: "transparent", ":hover": colors.surface2 },
+    borderWidth: 0,
+    borderRadius: radius.md,
     cursor: "pointer",
   },
 });
