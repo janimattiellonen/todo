@@ -29,6 +29,7 @@ import { requireSession } from "~/features/auth/requireSession.server";
 import { toColumnId } from "~/features/columns/columnsTypes";
 import { queryListColumnsForWorkspace } from "~/features/columns/queryListColumnsForWorkspace.server";
 import { AddTaskForm } from "~/features/tasks/AddTaskForm";
+import { archiveTask } from "~/features/tasks/archiveTask.server";
 import { deleteTask } from "~/features/tasks/deleteTask.server";
 import { EditTaskForm } from "~/features/tasks/EditTaskForm";
 import { insertTask } from "~/features/tasks/insertTask.server";
@@ -236,6 +237,15 @@ export async function action({
       return redirect("/board");
     }
     await deleteTask(pool, session.workspaceId, toTaskId(taskIdRaw));
+    return redirect("/board");
+  }
+
+  if (intent === "archive-task") {
+    const taskIdRaw = formData.get("task_id");
+    if (typeof taskIdRaw !== "string" || taskIdRaw.length === 0) {
+      return redirect("/board");
+    }
+    await archiveTask(pool, session.workspaceId, toTaskId(taskIdRaw));
     return redirect("/board");
   }
 

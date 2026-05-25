@@ -52,6 +52,7 @@ export function EditTaskForm(props: Props) {
 
   const editFormId = "edit-task-form-fields";
   const deleteFormId = "delete-task-form";
+  const archiveFormId = "archive-task-form";
 
   return (
     <>
@@ -135,10 +136,14 @@ export function EditTaskForm(props: Props) {
         )}
       </Form>
 
-      {/* Sibling delete form — kept separate so the Confirm-delete button
-          submits only the delete intent without picking up the edit fields. */}
+      {/* Sibling forms for delete + archive — kept separate so each
+          submitting button carries only its own intent + task_id. */}
       <Form method="post" id={deleteFormId} data-testid="delete-task-form">
         <input type="hidden" name="_intent" value="delete-task" />
+        <input type="hidden" name="task_id" value={props.taskId} />
+      </Form>
+      <Form method="post" id={archiveFormId} data-testid="archive-task-form">
+        <input type="hidden" name="_intent" value="archive-task" />
         <input type="hidden" name="task_id" value={props.taskId} />
       </Form>
 
@@ -166,14 +171,24 @@ export function EditTaskForm(props: Props) {
         </div>
       ) : (
         <div {...stylex.props(styles.footer)}>
-          <button
-            type="button"
-            onClick={() => setConfirmingDelete(true)}
-            {...stylex.props(styles.dangerGhost)}
-            data-testid="delete-task-toggle"
-          >
-            Delete
-          </button>
+          <div {...stylex.props(styles.buttonGroup)}>
+            <button
+              type="submit"
+              form={archiveFormId}
+              {...stylex.props(styles.ghost)}
+              data-testid="archive-task-button"
+            >
+              Archive
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(true)}
+              {...stylex.props(styles.dangerGhost)}
+              data-testid="delete-task-toggle"
+            >
+              Delete
+            </button>
+          </div>
           <div {...stylex.props(styles.buttonGroup)}>
             <button
               type="button"
@@ -252,6 +267,17 @@ const styles = stylex.create({
   buttonGroup: {
     display: "flex",
     gap: spacing.x2,
+  },
+  ghost: {
+    padding: `${spacing.x2} ${spacing.x3}`,
+    fontFamily: fontFamily.text,
+    fontSize: fontSize.bodySm,
+    fontWeight: fontWeight.medium,
+    color: colors.textDefault,
+    backgroundColor: { default: "transparent", ":hover": colors.surface2 },
+    borderWidth: 0,
+    borderRadius: radius.md,
+    cursor: "pointer",
   },
   cancel: {
     padding: `${spacing.x2} ${spacing.x3}`,
