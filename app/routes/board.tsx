@@ -16,7 +16,13 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import * as stylex from "@stylexjs/stylex";
 import { useEffect, useState } from "react";
-import { Form, redirect, useNavigate, useSubmit } from "react-router";
+import {
+  Form,
+  redirect,
+  useNavigate,
+  useNavigation,
+  useSubmit,
+} from "react-router";
 import { getServerConfig } from "~/config/serverConfig.server";
 import { getPool } from "~/database/pool.server";
 import { requireSession } from "~/features/auth/requireSession.server";
@@ -471,6 +477,10 @@ function BoardColumn(props: BoardColumnProps) {
                 taskId={task.id}
                 title={task.title}
                 currentColumnId={props.column.id}
+                currentIndex={props.column.tasks.findIndex(
+                  (t) => t.id === task.id,
+                )}
+                lastIndex={props.column.tasks.length - 1}
                 allColumns={props.allColumns}
                 onClick={() => props.onTaskClick(task.id)}
               />
@@ -491,6 +501,8 @@ type SortableTaskProps = {
   taskId: string;
   title: string;
   currentColumnId: string;
+  currentIndex: number;
+  lastIndex: number;
   allColumns: ReadonlyArray<ColumnOption>;
   onClick: () => void;
 };
@@ -527,6 +539,8 @@ function SortableTask(props: SortableTaskProps) {
         <MoveTaskMenu
           taskId={props.taskId}
           currentColumnId={props.currentColumnId}
+          currentIndex={props.currentIndex}
+          lastIndex={props.lastIndex}
           allColumns={props.allColumns}
         />
       </div>
@@ -537,6 +551,8 @@ function SortableTask(props: SortableTaskProps) {
 type MoveTaskMenuProps = {
   taskId: string;
   currentColumnId: string;
+  currentIndex: number;
+  lastIndex: number;
   allColumns: ReadonlyArray<ColumnOption>;
 };
 
@@ -552,37 +568,94 @@ type MoveTaskMenuProps = {
  * Enter submits.
  */
 function MoveTaskMenu(props: MoveTaskMenuProps) {
+  const [open, setOpen] = useState(false);
+  const navigation = useNavigation();
+
+  // Close the menu whenever a navigation completes (form submitted, the
+  // loader revalidated). Without this, clicking "Move up" leaves the
+  // menu open and the toggle becomes the wrong UX state after the move.
+  useEffect(() => {
+    if (navigation.state === "idle") {
+      setOpen(false);
+    }
+  }, [navigation.state]);
+
   const others = props.allColumns.filter((c) => c.id !== props.currentColumnId);
+  const canMoveUp = props.currentIndex > 0;
+  const canMoveDown = props.currentIndex < props.lastIndex;
 
   return (
-    <details {...stylex.props(styles.menuDetails)} data-testid="move-task-menu">
-      <summary
+    <div {...stylex.props(styles.menuDetails)} data-testid="move-task-menu">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
         {...stylex.props(styles.menuSummary)}
-        aria-label="Move task to another column"
+        aria-label="Move task"
+        aria-haspopup="menu"
+        aria-expanded={open}
         data-testid="move-task-toggle"
       >
         ⋯
-      </summary>
-      <div {...stylex.props(styles.menuPopup)} data-testid="move-task-popup">
-        <Form method="post">
-          <input type="hidden" name="_intent" value="move-task" />
-          <input type="hidden" name="task_id" value={props.taskId} />
-          <p {...stylex.props(styles.menuLabel)}>Move to:</p>
-          {others.map((col) => (
-            <button
-              key={col.id}
-              type="submit"
-              name="destination_column_id"
-              value={col.id}
-              {...stylex.props(styles.menuItem)}
-              data-testid={`move-task-to-${col.name.toLowerCase().replace(/\s+/g, "-")}`}
-            >
-              {col.name}
-            </button>
-          ))}
-        </Form>
-      </div>
-    </details>
+      </button>
+      {open && (
+        <div {...stylex.props(styles.menuPopup)} data-testid="move-task-popup">
+          {(canMoveUp || canMoveDown) && (
+            <Form method="post">
+              <input type="hidden" name="_intent" value="move-task" />
+              <input type="hidden" name="task_id" value={props.taskId} />
+              <input
+                type="hidden"
+                name="destination_column_id"
+                value={props.currentColumnId}
+              />
+              <p {...stylex.props(styles.menuLabel)}>Within column</p>
+              {canMoveUp && (
+                <button
+                  type="submit"
+                  name="destination_index"
+                  value={String(props.currentIndex - 1)}
+                  {...stylex.props(styles.menuItem)}
+                  data-testid="move-task-up"
+                >
+                  ↑ Move up
+                </button>
+              )}
+              {canMoveDown && (
+                <button
+                  type="submit"
+                  name="destination_index"
+                  value={String(props.currentIndex + 1)}
+                  {...stylex.props(styles.menuItem)}
+                  data-testid="move-task-down"
+                >
+                  ↓ Move down
+                </button>
+              )}
+            </Form>
+          )}
+
+          {others.length > 0 && (
+            <Form method="post">
+              <input type="hidden" name="_intent" value="move-task" />
+              <input type="hidden" name="task_id" value={props.taskId} />
+              <p {...stylex.props(styles.menuLabel)}>Move to</p>
+              {others.map((col) => (
+                <button
+                  key={col.id}
+                  type="submit"
+                  name="destination_column_id"
+                  value={col.id}
+                  {...stylex.props(styles.menuItem)}
+                  data-testid={`move-task-to-${col.name.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  {col.name}
+                </button>
+              ))}
+            </Form>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
